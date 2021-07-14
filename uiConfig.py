@@ -113,6 +113,7 @@ class Action:
                 time.sleep(.5)
                 keyboard.press_and_release('enter')
         else:
+            Action.stop(self)
             Action.ui_log(self, "Minecraft Launcher is not running. :)")
 
     def add(self):
@@ -137,25 +138,30 @@ class Action:
             Action.add(self)
 
     def start(self):
-        if read_file():
-            self.ui.log.clear()
-            Action.ui_log(self, "Started! :)")
-            keyboard.add_hotkey(self.ui.emergencyKey.text(), callback=Action.stop, args=(self,))
-            commands, count = "", 1
-            for i in read_file():
-                commands += f"\n{count}. [ {i['key']}  {i['cmd']} ]"
-                count += 1
-                keyboard.add_hotkey(i['key'], callback=Action.keyboard_act, args=(self, i['key'], i['cmd']))
-            Action.ui_log(self, f"Available keys:{commands}")
-            self.ui.startBtn.hide()
-            self.ui.stopBtn.show()
-            self.ui.addBtn.setEnabled(False)
-            self.ui.hotkeyEdit.setEnabled(False)
-            self.ui.cmdEdit.setEnabled(False)
-            self.ui.pressEnter.setEnabled(False)
-            self.ui.emergencyKey.setEnabled(False)
+        if is_minecraft_running():
+            if read_file():
+                self.ui.log.clear()
+                Action.ui_log(self, "Started! :)")
+                keyboard.add_hotkey(self.ui.emergencyKey.text(), callback=Action.stop, args=(self,))
+                commands, count = "", 1
+                for i in read_file():
+                    commands += f"\n{count}. [ {i['key']}  {i['cmd']} ]"
+                    count += 1
+                    keyboard.add_hotkey(i['key'], callback=Action.keyboard_act, args=(self, i['key'], i['cmd']))
+                Action.ui_log(self, f"Available keys:{commands}")
+                self.ui.startBtn.hide()
+                self.ui.stopBtn.show()
+                self.ui.addBtn.setEnabled(False)
+                self.ui.hotkeyEdit.setEnabled(False)
+                self.ui.cmdEdit.setEnabled(False)
+                self.ui.pressEnter.setEnabled(False)
+                self.ui.emergencyKey.setEnabled(False)
+            else:
+                Action.ui_log(self, "Add some hotkeys! :)")
         else:
-            Action.ui_log(self, "Add some hotkeys! :)")
+            Action.stop(self)
+            self.ui.log.clear()
+            Action.ui_log(self, "Minecraft Launcher is not running. :)")
 
     def stop(self, emergency=False):
         if not emergency:
