@@ -8,6 +8,7 @@ import random
 import json
 import psutil
 import time
+HOTKEYS_FILE = "hotkeys.json"
 
 
 def current_time():
@@ -20,40 +21,47 @@ def current_time2():
     return QTime.currentTime().toString()
 
 
+def file_exist():
+    return os.path.exists(HOTKEYS_FILE)
+
+
+def create_file():
+    with open(HOTKEYS_FILE, 'w'):
+        pass
+    with open(HOTKEYS_FILE, "w") as outfile:
+        outfile.write(json.dumps({"hotkeys": []}, indent=4))
+
+
 def read_file():
-    try:
-        with open('hotkeys.json', 'r') as openfile:
+    if file_exist():
+        with open(HOTKEYS_FILE, 'r') as openfile:
             json_object = json.load(openfile)
-    except:
-        json_object = {"hotkey": []}
-    return json_object
+        return json_object['hotkeys']
+    else:
+        create_file()
+        return []
 
 
 def write_file(hotkey, cmd):
-    try:
-        if not os.path.exists('hotkeys.json'):
-            with open('hotkeys.json', 'w'):
-                pass
-            dictionary = [{"key": hotkey, "cmd": cmd}]
-        else:
-            data = read_file()
-            dictionary = data['hotkeys'] + [{"key": hotkey, "cmd": cmd}]
+    dictionary = read_file() + [{"key": hotkey, "cmd": cmd}]
+    with open("hotkeys.json", "w") as outfile:
+        outfile.write(json.dumps({"hotkeys": dictionary}, indent=4))
 
-        with open("hotkeys.json", "w") as outfile:
-            outfile.write(json.dumps({"hotkeys": dictionary}, indent=4))
-    except:
-        os.remove("hotkeys.json")
-        with open('hotkeys.json', 'w'):
+
+def is_minecraft_running():
+    exe = [psutil.Process(p) for p in psutil.pids()]
+    proceed = False
+    for i in exe:
+        try:
+            if i.status() == "running" and i.name() == "MinecraftLauncher.exe":
+                proceed = True
+                break
+        except:
             pass
-        dictionary = [{"key": hotkey, "cmd": cmd}]
-        with open("hotkeys.json", "w") as outfile:
-            outfile.write(json.dumps({"hotkeys": dictionary}, indent=4))
+    return proceed
 
 
 class Action:
-    """
-    System / Ui
-    """
     def ui_log(self, message):
         t, c = current_time2(), self.ui.log.count()
         self.ui.log.setCurrentRow(c - 1)
@@ -78,10 +86,16 @@ class Action:
         self.ui.startBtn.clicked.connect(lambda: Action.start(self))
         self.ui.stopBtn.clicked.connect(lambda: Action.stop(self))
         self.ui.addBtn.clicked.connect(lambda: Action.add(self))
-        self.ui.hotkeyEdit.returnPressed.connect(lambda: Action.add(self))
+        self.ui.pressEnter.stateChanged.connect(lambda: Action.stop(self, emergency=True))
         self.ui.cmdEdit.returnPressed.connect(lambda: Action.add(self))
         self.ui.pressEnter.stateChanged.connect(lambda: Action.stop(self))
-        write_file("shift + b", "Romans 5:8")
+        Action.ui_log(self, f"There are currently {len(read_file())} hotkeys...")
+        if read_file():
+            commands, count = "", 1
+            for i in read_file():
+                commands += f"\n{count}. [ {i['key']}  {i['cmd']} ]"
+                count += 1
+            Action.ui_log(self, f"Available keys:{commands}")
         self.ui.startBtn.show()
         self.ui.stopBtn.hide()
         self.ui.timer = QTimer()
@@ -89,16 +103,7 @@ class Action:
         self.ui.timer.start(1000)
 
     def keyboard_act(self, key, cmd):
-        exe = [psutil.Process(p) for p in psutil.pids()]
-        proceed = False
-        for i in exe:
-            try:
-                if i.status() == "running" and i.name() == "MinecraftLauncher.exe":
-                    proceed = True
-                    break
-            except:
-                pass
-        if proceed:
+        if is_minecraft_running():
             Action.ui_log(self, f"Executing [ {key}  {cmd} ]")
             time.sleep(1)
             keyboard.press_and_release('t')
@@ -110,54 +115,67 @@ class Action:
         else:
             Action.ui_log(self, "Minecraft Launcher is not running. :)")
 
-    """
-    Logger
-    """
-    def start(self):
-        self.ui.log.clear()
-        self.ui.log.addItem("{} [CLEARED LOG]".format(current_time2()))
-        try:
-            data = read_file()['hotkeys']
-        except:
-            data = []
+    def add(self):
+        if file_exist():
+            key = self.ui.hotkeyEdit.text()
+            cmd = self.ui.cmdEdit.text()
+            if key != "" and cmd != "":
+                hotkeys_list = read_file()
+                if key in [i['key'] for i in hotkeys_list]:
+                    Action.ui_log(self, f"The [ {key} ] hot key already exists.")
+                else:
+                    self.ui.log.clear()
+                    write_file(key, cmd)
+                    Action.ui_log(self, f"Added: [ {key}  {cmd} ]")
+                    self.ui.cmdEdit.setText("")
+                    self.ui.hotkeyEdit.setText("")
+            else:
+                Action.ui_log(self, "WARNING! Enter inputs. :)")
+        else:
+            create_file()
+            Action.ui_log(self, f"{HOTKEYS_FILE} created.")
+            Action.add(self)
 
-        if data:
-            Action.ui_log(self, "Starting Hot Key Recognition!")
+    def start(self):
+        if read_file():
+            self.ui.log.clear()
+            Action.ui_log(self, "Started! :)")
             keyboard.add_hotkey(self.ui.emergencyKey.text(), callback=Action.stop, args=(self,))
             commands, count = "", 1
-            for i in data:
+            for i in read_file():
                 commands += f"\n{count}. [ {i['key']}  {i['cmd']} ]"
                 count += 1
                 keyboard.add_hotkey(i['key'], callback=Action.keyboard_act, args=(self, i['key'], i['cmd']))
-            Action.ui_log(self, f"Adding keys:{commands}\nInserted into hotkeys.json")
+            Action.ui_log(self, f"Available keys:{commands}")
             self.ui.startBtn.hide()
             self.ui.stopBtn.show()
+            self.ui.addBtn.setEnabled(False)
+            self.ui.hotkeyEdit.setEnabled(False)
+            self.ui.cmdEdit.setEnabled(False)
+            self.ui.pressEnter.setEnabled(False)
+            self.ui.emergencyKey.setEnabled(False)
         else:
-            Action.ui_log(self, "Add a hot key and command. :)")
+            Action.ui_log(self, "Add some hotkeys! :)")
 
-    def stop(self):
-        try:
-            Action.ui_log(self, "Stopping Hot Key Recognition!")
-            keyboard.unhook_all_hotkeys()
-        except:
-            pass
+    def stop(self, emergency=False):
+        if not emergency:
+            Action.ui_log(self, "Stopped all hotkeys!")
+            try:
+                keyboard.unhook_all_hotkeys()
+            except:
+                pass
+        else:
+            if read_file():
+                Action.ui_log(self, "Stopping relevant functions!")
+                try:
+                    keyboard.unhook_all_hotkeys()
+                    Action.ui_log(self, "Unhooking all hotkeys...")
+                except:
+                    pass
         self.ui.startBtn.show()
         self.ui.stopBtn.hide()
-
-    def add(self):
-        if self.ui.hotkeyEdit.text() != "" and self.ui.cmdEdit.text() != "":
-            data = read_file()
-            if self.ui.hotkeyEdit.text() in [i['key'] for i in data['hotkeys']]:
-                Action.ui_log(self, f"The {self.ui.hotkeyEdit.text()} hot key already exists.")
-            else:
-                self.ui.log.clear()
-                self.ui.log.addItem("{} [CLEARED LOG]".format(current_time2()))
-                Action.ui_log(self, f"Adding: [ {self.ui.hotkeyEdit.text()}  {self.ui.cmdEdit.text()} ]")
-                write_file(self.ui.hotkeyEdit.text(), self.ui.cmdEdit.text())
-                self.ui.hotkeyEdit.setText("")
-                self.ui.cmdEdit.setText("")
-                Action.stop(self)
-
-        else:
-            Action.ui_log(self, "WARNING! Enter inputs. :)")
-
+        self.ui.addBtn.setEnabled(True)
+        self.ui.hotkeyEdit.setEnabled(True)
+        self.ui.cmdEdit.setEnabled(True)
+        self.ui.pressEnter.setEnabled(True)
+        self.ui.emergencyKey.setEnabled(True)
