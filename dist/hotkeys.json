@@ -1,0 +1,12 @@
+{
+    "hotkeys": [
+        {
+            "key": "ctrl + shift + b",
+            "cmd": "Romans 5:8"
+        },
+        {
+            "key": "shift + b",
+            "cmd": "Romans 5:8"
+        }
+    ]
+}

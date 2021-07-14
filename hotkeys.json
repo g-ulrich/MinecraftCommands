@@ -1,0 +1,36 @@
+{
+    "hotkeys": [
+        {
+            "key": "shift + s",
+            "cmd": "/spawn"
+        },
+        {
+            "key": "shift + w",
+            "cmd": "/wild"
+        },
+        {
+            "key": "shift + h",
+            "cmd": "/home"
+        },
+        {
+            "key": "shift + $",
+            "cmd": "/sethome"
+        },
+        {
+            "key": "ctrl + s",
+            "cmd": "/spawn"
+        },
+        {
+            "key": "ctrl + shift + s",
+            "cmd": "/spawn"
+        },
+        {
+            "key": "m",
+            "cmd": "mom"
+        },
+        {
+            "key": "shift + m",
+            "cmd": "/msg "
+        }
+    ]
+}
