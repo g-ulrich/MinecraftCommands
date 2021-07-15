@@ -105,12 +105,11 @@ class Action:
     def keyboard_act(self, key, cmd):
         if is_minecraft_running():
             Action.ui_log(self, f"Executing [ {key}  {cmd} ]")
-            time.sleep(1)
             keyboard.press_and_release('t')
-            time.sleep(1)
+            time.sleep(.5)
             keyboard.write(cmd)
             if self.ui.pressEnter.isChecked():
-                time.sleep(.5)
+                # time.sleep(.5)
                 keyboard.press_and_release('enter')
         else:
             Action.stop(self)

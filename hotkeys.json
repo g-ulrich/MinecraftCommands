@@ -1,7 +1,11 @@
 {
     "hotkeys": [
         {
-            "key": "shift + w",
+            "key": "1",
+            "cmd": "/home"
+        },
+        {
+            "key": "2",
             "cmd": "/wild"
         }
     ]
