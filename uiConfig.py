@@ -106,7 +106,7 @@ class Action:
         if is_minecraft_running():
             Action.ui_log(self, f"Executing [ {key}  {cmd} ]")
             keyboard.press_and_release('t')
-            time.sleep(.5)
+            time.sleep(.2)
             keyboard.write(cmd)
             if self.ui.pressEnter.isChecked():
                 # time.sleep(.5)
